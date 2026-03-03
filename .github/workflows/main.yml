@@ -7,6 +7,7 @@ on:
     paths:
       - 'htmlcode/**'
       - 'phpcode/**'
+      - 'pythoncode/**'
 
 jobs:
   deploy:
