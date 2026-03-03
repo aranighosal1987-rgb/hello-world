@@ -37,7 +37,7 @@ jobs:
 
       - name: Rollout Restart Deployment
 <<<<<<< HEAD
-        run: oc rollout restart deployment hello-world
+        run: oc rollout restart deployment myapp
 =======
-        run: oc rollout restart deployment hello-world
+        run: oc rollout restart deployment myapp
 >>>>>>> 44d50b6d91d303df4c0ba69b5897b3c2571cd783
