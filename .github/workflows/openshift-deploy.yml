@@ -1,12 +1,10 @@
-name: Deploy to OpenShift
+name: New Deploy to OpenShift
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'htmlcode/**'
-      - 'phpcode/**'
       - 'pythoncode/**'
 
 jobs:
