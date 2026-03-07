@@ -1,0 +1,45 @@
+name: Deploy to OpenShift
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'htmlcode/**'
+      - 'phpcode/**'
+      - 'pythoncode/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install oc CLI
+        run: |
+          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+          tar -xvf oc.tar.gz
+          sudo mv oc /usr/local/bin/
+
+      - name: Login to OpenShift
+        run: |
+          oc login ${{ secrets.OPENSHIFT_SERVER }} \
+            --token=${{ secrets.OPENSHIFT_TOKEN }} \
+            --insecure-skip-tls-verify=true
+
+      - name: Switch Project
+        run: oc project ${{ secrets.OPENSHIFT_NAMESPACE }}
+      
+      - name: Create S2I Application
+        run: oc new-app https://github.com/aranighosal1987-rgb/hello-world.git --context-dir=pythoncode --name=myapp
+
+      - name: Expose Service
+        run: oc expose svc/myapp
+
+      - name: Trigger Build
+        run: oc start-build myapp
+
+      - name: Rollout Restart Deployment
+        run: oc rollout restart deployment myapp
