@@ -1,0 +1,68 @@
+name: Deploy or Update S2I
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'pythoncode/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install oc CLI
+        run: |
+          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/oc/latest/linux/oc.tar.gz
+          tar -xvf oc.tar.gz
+          sudo mv oc /usr/local/bin/
+
+      - name: Login to OpenShift
+        run: |
+          oc login ${{ secrets.OPENSHIFT_SERVER }} \
+            --token=${{ secrets.OPENSHIFT_TOKEN }} \
+            --insecure-skip-tls-verify=true
+
+      - name: Switch Project
+        run: oc project ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      # ✅ Check if app exists
+      - name: Check if app exists
+        id: check_app
+        run: |
+          if oc get bc myapp > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ✅ Create only if not exists
+      - name: Create S2I Application
+        if: steps.check_app.outputs.exists == 'false'
+        run: |
+          oc new-app https://github.com/aranighosal1987-rgb/hello-world.git \
+            --context-dir=pythoncode \
+            --name=myapp
+
+      # ✅ Expose only once
+      - name: Expose Service
+        if: steps.check_app.outputs.exists == 'false'
+        run: oc expose svc/myapp
+
+      # ✅ Update (for existing app)
+      - name: Update BuildConfig (optional)
+        if: steps.check_app.outputs.exists == 'true'
+        run: |
+          oc set env bc/myapp UPDATED_AT=$(date)
+
+      # ✅ Trigger build (for both cases)
+      - name: Trigger Build
+        run: oc start-build myapp --follow
+
+      # ✅ Restart deployment
+      - name: Rollout Restart Deployment
+        run: oc rollout restart deployment myapp
